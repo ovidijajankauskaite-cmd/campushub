@@ -1,0 +1,402 @@
+openapi: 3.0.3
+info:
+  title: CampusHub API
+  description: API specification for CampusHub, a student community web app.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5000/api
+    description: Local development server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [student, admin]
+        studentId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    Event:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        date:
+          type: string
+          format: date-time
+        location:
+          type: string
+        capacity:
+          type: integer
+        organizerId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    Group:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        ownerId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, studentId]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                studentId:
+                  type: string
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /auth/login:
+    post:
+      summary: Log in to the application
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      summary: Log out user
+      responses:
+        '200':
+          description: Logged out successfully
+
+  /events:
+    get:
+      summary: Get all upcoming events
+      responses:
+        '200':
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+    post:
+      summary: Create a new event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, description, date, location, capacity]
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                date:
+                  type: string
+                  format: date-time
+                location:
+                  type: string
+                capacity:
+                  type: integer
+      responses:
+        '201':
+          description: Event created
+
+  /events/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get event details
+      responses:
+        '200':
+          description: Event details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '404':
+          description: Event not found
+    put:
+      summary: Update event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Event updated
+    delete:
+      summary: Delete an event
+      description: Organizer or Admin only
+      responses:
+        '204':
+          description: Event deleted
+
+  /events/{id}/registrations:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get users registered for the event
+      responses:
+        '200':
+          description: List of registered users
+
+  /events/{id}/register:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    post:
+      summary: Register current user for the event
+      responses:
+        '200':
+          description: Registered successfully
+        '400':
+          description: Event is full or past
+    delete:
+      summary: Cancel registration for the event
+      responses:
+        '204':
+          description: Registration cancelled
+
+  /groups:
+    get:
+      summary: Get all study groups
+      responses:
+        '200':
+          description: List of groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Group'
+    post:
+      summary: Create a study group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, description]
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Group created
+
+  /groups/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get group details
+      responses:
+        '200':
+          description: Group details
+
+  /groups/{id}/join:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    post:
+      summary: Join a group
+      responses:
+        '200':
+          description: Joined successfully
+
+  /groups/{id}/leave:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    delete:
+      summary: Leave a group
+      responses:
+        '204':
+          description: Left group successfully
+
+  /dashboard:
+    get:
+      summary: Get student personal dashboard data
+      responses:
+        '200':
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  upcomingEvents:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Event'
+                  myGroups:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Group'
+
+  /admin/users:
+    get:
+      summary: Get all users
+      description: Admin only
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '403':
+          description: Forbidden
+
+  /admin/events:
+    get:
+      summary: Get all events
+      description: Admin only
+      responses:
+        '200':
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+
+  /admin/events/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    delete:
+      summary: Delete an event
+      description: Admin only
+      responses:
+        '204':
+          description: Event deleted
+        '403':
+          description: Forbidden
+
+  /admin/stats:
+    get:
+      summary: Get platform statistics
+      description: Admin only
+      responses:
+        '200':
+          description: Platform statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalUsers:
+                    type: integer
+                  totalEvents:
+                    type: integer
+                  totalGroups:
+                    type: integer
+                  totalRegistrations:
+                    type: integer
